@@ -8,6 +8,8 @@
 
 ![Screenshot of character set](img/charset.png)
 
+![Window with several marks](img/window.png)
+
 ## Requirements
 
 * Emacs 24.3 or higher (21.0 or higher with [cl-lib](http://elpa.gnu.org/packages/cl-lib.html))
@@ -39,7 +41,7 @@ To switch the fringe in which mark overlays are displayed (`left-fringe` by defa
 
 ;; Use right fringe
 (setq-default right-fringe-width 16)
-(setq-default evil-fringe-mark-side right-fringe)
+(setq-default evil-fringe-mark-side 'right-fringe)
 ```
 
 Regardless of in which fringe you choose to display marks, it is recommended that you increase the width of that fringe to fully display wide characters.

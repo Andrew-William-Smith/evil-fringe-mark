@@ -4,7 +4,7 @@
 ;; Copyright (C) 2018 Andrew Smith
 
 ;; Author: Andrew Smith <andy.bill.smith@gmail.com>
-;; URL: https://github.com/Andrew-William-Smith/
+;; URL: https://github.com/Andrew-William-Smith/evil-fringe-mark
 ;; Version: 1.0.0
 ;; Package-Requires: ((emacs "21.0"))
 
