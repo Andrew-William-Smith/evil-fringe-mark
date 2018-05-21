@@ -4,11 +4,11 @@
 
 `evil-fringe-mark.el` is a GNU Emacs minor mode that displays `evil-mode` marks in the fringes of active buffers.  It may be enabled globally or on a per-buffer basis as required.
 
-## Screenshot
-
-![Screenshot of character set](img/charset.png)
+## Screenshots
 
 ![Window with several marks](img/window.png)
+
+![Screenshot of character set](img/charset.png)
 
 ## Requirements
 
