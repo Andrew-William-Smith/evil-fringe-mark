@@ -101,6 +101,7 @@
   (evil-fringe-marks-clear-buffer)
   (evil-fringe-marks-refresh-buffer))
 
+;;;###autoload
 (define-minor-mode evil-fringe-mark-mode
   "Display evil-mode marks in the fringe."
   :lighter " EFM"
@@ -114,6 +115,7 @@
       (ad-deactivate 'evil-set-marker)
       (ad-deactivate 'evil-delete-marks))))
 
+;;;###autoload
 (define-minor-mode global-evil-fringe-mark-mode
   "Display evil-mode marks in the fringe.  Global version of `evil-fringe-mark-mode'."
   :lighter " gEFM"
