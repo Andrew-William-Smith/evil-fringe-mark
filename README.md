@@ -12,13 +12,13 @@
 
 ## Requirements
 
-* Emacs 24.3 or higher (21.0 or higher with [cl-lib](http://elpa.gnu.org/packages/cl-lib.html))
+* Emacs 25 or higher (21.0 or higher with [cl-lib](http://elpa.gnu.org/packages/cl-lib.html))
 * [evil-mode](https://github.com/emacs-evil/evil) (of course)
 * [fringe-helper.el](https://github.com/nschum/fringe-helper.el)
 
 ## Installation
 
-`evil-fringe-mark` may be installed from [MELPA](https://github.com/milkypostman/melpa.git) with `package` (`M-x package-install evil-fringe-mark`).  You may also install the package manually by placing both `evil-fringe-mark.el` and `evil-fringe-mark-overlays.el` in your `load-path` and adding the following lines in your Emacs configuration:
+`evil-fringe-mark` may be installed from [MELPA](https://github.com/milkypostman/melpa.git) with `package.el` (`M-x package-install evil-fringe-mark`).  You may also install the package manually by placing both `evil-fringe-mark.el` and `evil-fringe-mark-overlays.el` in your `load-path` and adding the following lines in your Emacs configuration:
 
 ```
 (require 'evil-fringe-mark)
