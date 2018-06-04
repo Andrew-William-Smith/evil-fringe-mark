@@ -6,7 +6,7 @@
 ;; Author: Andrew Smith <andy.bill.smith@gmail.com>
 ;; URL: https://github.com/Andrew-William-Smith/evil-fringe-mark
 ;; Version: 1.0.1
-;; Package-Requires: ((emacs "24.3"))
+;; Package-Requires: ((emacs "24.3") (evil "1.0.0") (fringe-helper "0.1.1"))
 
 ;; This file is part of evil-fringe-mark.
 

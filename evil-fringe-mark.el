@@ -6,7 +6,7 @@
 ;; Author: Andrew Smith <andy.bill.smith@gmail.com>
 ;; URL: https://github.com/Andrew-William-Smith/evil-fringe-mark
 ;; Version: 1.0.1
-;; Package-Requires: ((emacs "24.3"))
+;; Package-Requires: ((emacs "24.3") (evil "1.0.0") (fringe-helper "0.1.1"))
 
 ;; This file is part of evil-fringe-mark.
 
@@ -67,28 +67,28 @@
   "Redraw all mark indicators in the current buffer."
   ; Local marks
   (cl-loop for (char . marker) in evil-markers-alist do
-           (if (and (markerp marker)
-                    (>= char ?a))
-               (evil-fringe-mark-put char 'evil-fringe-mark-list marker)))
+           (when (and (markerp marker)
+                      (>= char ?a))
+             (evil-fringe-mark-put char 'evil-fringe-mark-list marker)))
   ; Global marks
   (cl-loop for (char . marker) in (default-value 'evil-markers-alist) do
-           (if (and (markerp marker)
-                    (>= char ?A)
-                    (eq (current-buffer) (marker-buffer marker)))
-               (evil-fringe-mark-put char 'evil-fringe-mark-file-list marker))))
+           (when (and (markerp marker)
+                      (>= char ?A)
+                      (eq (current-buffer) (marker-buffer marker)))
+             (evil-fringe-mark-put char 'evil-fringe-mark-file-list marker))))
 
 (defun evil-fringe-mark-clear-buffer ()
   "Delete all mark indicators from the current buffer."
   ; Local marks
   (cl-loop for key in evil-fringe-mark-list do
-           (if (numberp key)
+           (when (numberp key)
              (evil-fringe-mark-delete key)))
   ; Global marks
   (cl-loop for key in evil-fringe-mark-file-list do
-           (if (and (numberp key)
-                    (eq (current-buffer) (overlay-buffer
-                                             (plist-get evil-fringe-mark-file-list key))))
-               (evil-fringe-mark-delete key))))
+           (when (and (numberp key)
+                      (eq (current-buffer) (overlay-buffer
+                                            (plist-get evil-fringe-mark-file-list key))))
+             (evil-fringe-mark-delete key))))
 
 (defadvice evil-set-marker (around compile)
   "Advice function for `evil-fringe-mark'."
@@ -98,12 +98,11 @@
                        'evil-fringe-mark-list         ; Lowercase (local) mark
                      'evil-fringe-mark-file-list))    ; Uppercase (global) mark
         (old-mark  nil))
-    (progn
-      (setq old-mark (plist-get (symbol-value char-list) char))
-      (if old-mark
-          (fringe-helper-remove old-mark))
-      (if (or evil-fringe-mark-mode global-evil-fringe-mark-mode)
-          (evil-fringe-mark-put char char-list marker)))))
+    (setq old-mark (plist-get (symbol-value char-list) char))
+    (when old-mark
+      (fringe-helper-remove old-mark))
+    (when (or evil-fringe-mark-mode global-evil-fringe-mark-mode)
+      (evil-fringe-mark-put char char-list marker))))
 
 (defadvice evil-delete-marks (after compile)
   "Advice function for `evil-fringe-mark'."
