@@ -29,9 +29,11 @@
 ## Customisation
 
 ### Enable for only one buffer
+
 To enable or disable `evil-fringe-mark` for an individual buffer, type `M-x evil-fringe-mark-mode`.  While the global mode is enabled, this command will have no effect.
 
 ### Switch display fringe
+
 To switch the fringe in which mark overlays are displayed (`left-fringe` by default), include a variation of the following in your Emacs configuration:
 
 ```
@@ -47,6 +49,7 @@ To switch the fringe in which mark overlays are displayed (`left-fringe` by defa
 Regardless of in which fringe you choose to display marks, it is recommended that you increase the width of that fringe to fully display wide characters.
 
 ### Display special marks
+
 By default, `evil-fringe-mark` does not display automatically-placed special marks in the fringe.  To display these marks, set `evil-fringe-mark-show-special` to a non-`nil` value in your Emacs configuration:
 
 ```
@@ -69,6 +72,7 @@ The following special marks are supported:
 | `}`  | End of current paragraph           |
 
 ### Hide marks for a certain character
+
 To prevent fringe bitmaps from being displayed for certain characters, add the characters to the list `evil-fringe-mark-ignore-chars`:
 
 ```
@@ -80,6 +84,7 @@ To prevent fringe bitmaps from being displayed for certain characters, add the c
 ```
 
 ### Customise fringe bitmap styles
+
 The styles with which fringe bitmaps are displayed are controlled via variables of the form *evil-fringe-mark-{mark type}-face*, and may be customised by changing the following:
 
 | Face                            | Mark type                | Default                  |
@@ -89,6 +94,7 @@ The styles with which fringe bitmaps are displayed are controlled via variables 
 | `evil-fringe-mark-special-face` | Special marks            | `fringe`                 |
 
 ### Customise character bitmaps
+
 To change the bitmap used to display marks for a particular character or define a new character bitmap, use `fringe-helper-define`:
 
 ```

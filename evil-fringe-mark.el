@@ -170,10 +170,14 @@ and the start and end of the current paragraphs."
       (evil-fringe-mark-delete ?{)
       (evil-fringe-mark-delete ?})
       (save-excursion
-        (evil-goto-mark ?{)
-        (set-marker start-marker (point))
-        (evil-goto-mark ?})
-        (set-marker end-marker (point)))
+        ; Avoid evil-mode boundary errors
+        (if (ignore-errors (evil-goto-mark ?{))
+            (set-marker start-marker (point))
+          (set-marker start-marker 1)))
+      (save-excursion
+        (if (ignore-errors (evil-goto-mark ?}))
+            (set-marker end-marker (point))
+          (set-marker end-marker (buffer-size))))
       (evil-fringe-mark-put-special ?{ start-marker)
       (evil-fringe-mark-put-special ?} end-marker))
     ; Last change
@@ -183,7 +187,7 @@ and the start and end of the current paragraphs."
       (let ((change-marker (make-marker)))
         (evil-fringe-mark-delete ?.)
         (save-excursion
-          (evil-goto-mark ?.)
+          (ignore-errors (evil-goto-mark ?.))
           (set-marker change-marker (point)))
         (evil-fringe-mark-put-special ?. change-marker)))))
 
