@@ -5,8 +5,8 @@
 
 ;; Author: Andrew Smith <andy.bill.smith@gmail.com>
 ;; URL: https://github.com/Andrew-William-Smith/evil-fringe-mark
-;; Version: 1.0.1
-;; Package-Requires: ((emacs "24.3") (evil "1.0.0") (fringe-helper "0.1.1"))
+;; Version: 1.1.0
+;; Package-Requires: ((emacs "24.3") (evil "1.0.0") (fringe-helper "0.1.1") (goto-chg "1.6"))
 
 ;; This file is part of evil-fringe-mark.
 
@@ -25,6 +25,7 @@
 
 
 ;;; Code:
+(require 'fringe-helper)
 (fringe-helper-define 'evil-fringe-mark-upper-a '(center)
   "...XX..."
   "..XXXX.."
@@ -1065,7 +1066,151 @@
   "XXXXXXXX"
   "XXXXXXXX")
 
-(defvar evil-fringe-mark-bitmaps '(( 65 . evil-fringe-mark-upper-a)
+(fringe-helper-define 'evil-fringe-mark-symbol-period '(center)
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "...XX..."
+  "..XXXX.."
+  ".XXXXXX."
+  "..XXXX.."
+  "...XX...")
+
+(fringe-helper-define 'evil-fringe-mark-symbol-caron '(center)
+  "...XX..."
+  "..XXXX.."
+  ".XXXXXX."
+  "XXX..XXX"
+  "XX....XX"
+  "X......X"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........"
+  "........")
+
+(fringe-helper-define 'evil-fringe-mark-symbol-lt '(center)
+  "........"
+  ".......X"
+  "......XX"
+  ".....XXX"
+  "....XXX."
+  "...XXX.."
+  "..XXX..."
+  ".XXX...."
+  "XXX....."
+  "XXX....."
+  ".XXX...."
+  "..XXX..."
+  "...XXX.."
+  "....XXX."
+  ".....XXX"
+  "......XX"
+  ".......X"
+  "........")
+
+(fringe-helper-define 'evil-fringe-mark-symbol-gt '(center)
+  "........"
+  "X......."
+  "XX......"
+  "XXX....."
+  ".XXX...."
+  "..XXX..."
+  "...XXX.."
+  "....XXX."
+  ".....XXX"
+  ".....XXX"
+  "....XXX."
+  "...XXX.."
+  "..XXX..."
+  ".XXX...."
+  "XXX....."
+  "XX......"
+  "X......."
+  "........")
+
+(fringe-helper-define 'evil-fringe-mark-symbol-gtlt '(center)
+  "....XXX"
+  "...XXX."
+  "..XXX.."
+  ".XXX..."
+  "XXX...."
+  ".XXX..."
+  "..XXX.."
+  "...XXX."
+  "....XXX"
+  "XXX...."
+  ".XXX..."
+  "..XXX.."
+  "...XXX."
+  "....XXX"
+  "...XXX."
+  "..XXX.."
+  ".XXX..."
+  "XXX....")
+
+(fringe-helper-define 'evil-fringe-mark-symbol-lcurly '(center)
+  ".....XXX"
+  "....XXXX"
+  "...XXX.."
+  "...XX..."
+  "...XX..."
+  "...XX..."
+  "...XX..."
+  "..XXX..."
+  "XXXX...."
+  "XXXX...."
+  "..XXX..."
+  "...XX..."
+  "...XX..."
+  "...XX..."
+  "...XX..."
+  "...XXX.."
+  "....XXXX"
+  ".....XXX")
+
+(fringe-helper-define 'evil-fringe-mark-symbol-rcurly '(center)
+  "XXX....."
+  "XXXX...."
+  "..XXX..."
+  "...XX..."
+  "...XX..."
+  "...XX..."
+  "...XX..."
+  "...XXX.."
+  "....XXXX"
+  "....XXXX"
+  "...XXX.."
+  "...XX..."
+  "...XX..."
+  "...XX..."
+  "...XX..."
+  "..XXX..."
+  "XXXX...."
+  "XXX.....")
+
+
+(defvar evil-fringe-mark-bitmaps '(( 46 . evil-fringe-mark-symbol-period)
+                                   ( 60 . evil-fringe-mark-symbol-lt)
+                                   ( 62 . evil-fringe-mark-symbol-gt)
+                                   ( 65 . evil-fringe-mark-upper-a)
                                    ( 66 . evil-fringe-mark-upper-b)
                                    ( 67 . evil-fringe-mark-upper-c)
                                    ( 68 . evil-fringe-mark-upper-d)
@@ -1091,6 +1236,7 @@
                                    ( 88 . evil-fringe-mark-upper-x)
                                    ( 89 . evil-fringe-mark-upper-y)
                                    ( 90 . evil-fringe-mark-upper-z)
+                                   ( 94 . evil-fringe-mark-symbol-caron)
                                    ( 97 . evil-fringe-mark-lower-a)
                                    ( 98 . evil-fringe-mark-lower-b)
                                    ( 99 . evil-fringe-mark-lower-c)
@@ -1116,7 +1262,11 @@
                                    (119 . evil-fringe-mark-lower-w)
                                    (120 . evil-fringe-mark-lower-x)
                                    (121 . evil-fringe-mark-lower-y)
-                                   (122 . evil-fringe-mark-lower-z)))
+                                   (122 . evil-fringe-mark-lower-z)
+                                   (123 . evil-fringe-mark-symbol-lcurly)
+                                   (125 . evil-fringe-mark-symbol-rcurly)
+                                   (128 . evil-fringe-mark-symbol-gtlt))
+  "Alist of fringe bitmaps to display for characters.")
 
 (provide 'evil-fringe-mark-overlays)
 ;;; evil-fringe-mark-overlays.el ends here
