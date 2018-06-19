@@ -5,7 +5,7 @@
 
 ;; Author: Andrew Smith <andy.bill.smith@gmail.com>
 ;; URL: https://github.com/Andrew-William-Smith/evil-fringe-mark
-;; Version: 1.1.0
+;; Version: 1.1.1
 ;; Package-Requires: ((emacs "24.3") (evil "1.0.0") (fringe-helper "0.1.1") (goto-chg "1.6"))
 
 ;; This file is part of evil-fringe-mark.
@@ -69,6 +69,12 @@ in the fringe."
   "Mark characters for which to never display fringe bitmaps."
   :type '(repeat integer))
 
+(defcustom evil-fringe-mark-always-overwrite t
+  "Whether to always overwrite fringe bitmaps when a new mark is placed on a
+line or display the bitmap that is closer to the fringe, regardless of whether
+it was placed first."
+  :type 'boolean)
+
 (defcustom evil-fringe-mark-side 'left-fringe
   "Fringe in which to place mark overlays."
   :type '(choice (const :tag "Left fringe" left-fringe)
@@ -99,6 +105,11 @@ in the fringe."
 MARKER."
   (unless (or (member char evil-fringe-mark-ignore-chars)
               (minibufferp))
+    (when evil-fringe-mark-always-overwrite
+      (save-excursion
+        (goto-char (marker-position marker))
+        (beginning-of-line)
+        (set-marker marker (point))))
     (set char-list (plist-put (symbol-value char-list) char
                               (fringe-helper-insert
                                (cdr (assoc char evil-fringe-mark-bitmaps)) marker
@@ -211,10 +222,10 @@ and the start and end of the current paragraphs."
 (defun evil-fringe-mark-clear-buffer ()
   "Delete all mark indicators from the current buffer."
   ; Local marks
-  (cl-loop for (key _) on evil-fringe-mark-list by 'cadr do
+  (cl-loop for (key _) on evil-fringe-mark-list by 'cddr do
            (evil-fringe-mark-delete key))
   ; Special marks
-  (cl-loop for (key _) on evil-fringe-mark-special-list by 'cadr do
+  (cl-loop for (key _) on evil-fringe-mark-special-list by 'cddr do
            (evil-fringe-mark-delete key))
   ; Global marks
   (cl-loop for (key overlay) on evil-fringe-mark-file-list by 'cddr do
