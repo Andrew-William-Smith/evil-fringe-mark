@@ -5,7 +5,7 @@
 
 ;; Author: Andrew Smith <andy.bill.smith@gmail.com>
 ;; URL: https://github.com/Andrew-William-Smith/evil-fringe-mark
-;; Version: 1.1.1
+;; Version: 1.2.0
 ;; Package-Requires: ((emacs "24.3") (evil "1.0.0") (fringe-helper "0.1.1") (goto-chg "1.6"))
 
 ;; This file is part of evil-fringe-mark.
@@ -55,6 +55,10 @@
 
 (defvar evil-fringe-mark-file-list '()
   "Plist of fringe overlays for file marks.")
+
+(make-variable-buffer-local
+ (defvar evil-fringe-mark-overwritten-list '()
+   "Plist of fringe characters that have been overwritten."))
 
 (defvar evil-fringe-mark-special-chars '(?< ?> 128 ?. ?^ ?{ ?})
   "List of characters to consider special marks.")
@@ -107,16 +111,51 @@ it was placed first."
    ((>= char ?a) 'evil-fringe-mark-local-face)
    (t 'evil-fringe-mark-file-face)))
 
+(defun evil-fringe-mark-on-line (pos)
+  (let ((mark-on-line nil))
+    ; Check buffer-local marks
+    (cl-loop for (char overlay) on evil-fringe-mark-list by 'cddr do
+             (when (and (overlay-start overlay)
+                        (eq (line-number-at-pos (overlay-start overlay))
+                        (line-number-at-pos pos)))
+               (setq mark-on-line `(,char ,overlay))
+               (cl-return)))
+    ; Check file marks: Emacs has no way to combine plists
+    (unless mark-on-line
+      (cl-loop for (char overlay) on evil-fringe-mark-file-list by 'cddr do
+               (when (and (overlay-start overlay)
+                          (eq (current-buffer) (overlay-buffer overlay))
+                          (eq (line-number-at-pos (overlay-start overlay))
+                              (line-number-at-pos pos)))
+                 (setq mark-on-line `(,char ,overlay))
+                 (cl-return))))
+    mark-on-line))
+
 (defun evil-fringe-mark-put (char char-list marker)
   "Place an indicator for mark CHAR, of type CHAR-LIST, in the fringe at location
 MARKER."
   (unless (or (member char evil-fringe-mark-ignore-chars)
               (minibufferp))
     (when evil-fringe-mark-always-overwrite
-      (save-excursion
-        (goto-char (marker-position marker))
-        (beginning-of-line)
-        (set-marker marker (point))))
+      (let ((old-mark (evil-fringe-mark-on-line (marker-position marker)))
+            (overwritten-char (plist-get evil-fringe-mark-overwritten-list char))
+            (overwrite-overlay (plist-get (symbol-value (evil-fringe-mark-char-list char)) char))
+            (overwrite-marker (make-marker)))
+        (when old-mark
+          (evil-fringe-mark-delete (car old-mark))
+          (setq evil-fringe-mark-overwritten-list
+                (plist-put evil-fringe-mark-overwritten-list char (car old-mark))))
+        (when (and overwritten-char overwrite-overlay)
+          (set-marker overwrite-marker (overlay-start overwrite-overlay))
+          (evil-fringe-mark-put overwritten-char
+                                (evil-fringe-mark-char-list overwritten-char)
+                                overwrite-marker))
+        (cl-loop for (newer overwritten) on evil-fringe-mark-overwritten-list by 'cddr do
+                 (when (eq overwritten char)
+                   (setq evil-fringe-mark-overwritten-list
+                         (evil-plist-delete newer evil-fringe-mark-overwritten-list))))))
+    (let ((old-mark (plist-get (symbol-value char-list) char)))
+      (when old-mark (fringe-helper-remove old-mark)))
     (set char-list (plist-put (symbol-value char-list) char
                               ; Place indicators in the fringe if running Emacs graphically
                               (if (display-graphic-p)
@@ -137,24 +176,8 @@ MARKER."
 (defun evil-fringe-mark-put-special (char marker)
   "Place an indicator for special mark CHAR in the fringe at location MARKER.
 Special marks will not override marks placed by the user."
-  (let ((mark-on-line nil)
-        (mpos (marker-position marker)))
-    ; Check buffer-local marks
-    (cl-loop for (_ overlay) on evil-fringe-mark-list by 'cddr do
-             (when (eq (line-number-at-pos (overlay-start overlay))
-                       (line-number-at-pos mpos))
-               (setq mark-on-line t)
-               (cl-return)))
-    ; Check file marks: Emacs has no way to combine plists
-    (unless mark-on-line
-      (cl-loop for (_ overlay) on evil-fringe-mark-file-list by 'cddr do
-               (when (and (eq (current-buffer) (overlay-buffer overlay))
-                          (eq (line-number-at-pos (overlay-start overlay))
-                              (line-number-at-pos mpos)))
-                 (setq mark-on-line t)
-                 (cl-return))))
-    (unless mark-on-line
-      (evil-fringe-mark-put char 'evil-fringe-mark-special-list marker))))
+  (unless (evil-fringe-mark-on-line (marker-position marker))
+    (evil-fringe-mark-put char 'evil-fringe-mark-special-list marker)))
 
 (defun evil-fringe-mark-delete (char)
   "Delete the indicator for mark CHAR from the fringe."
@@ -253,9 +276,6 @@ and the start and end of the current paragraphs."
         (marker    ad-do-it)
         (char-list (evil-fringe-mark-char-list char))
         (old-mark  nil))
-    (setq old-mark (plist-get (symbol-value char-list) char))
-    (when old-mark
-      (fringe-helper-remove old-mark))
     (when (or evil-fringe-mark-mode global-evil-fringe-mark-mode)
       ; Handle special markers set with `evil-set-marker'
       (if (eq char-list 'evil-fringe-mark-special-list)
