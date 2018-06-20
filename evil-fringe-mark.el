@@ -100,6 +100,13 @@ it was placed first."
    ((>= char ?a) 'evil-fringe-mark-list)    ; Buffer-local mark
    (t 'evil-fringe-mark-file-list)))        ; File mark
 
+(defun evil-fringe-mark-char-face (char)
+  "Determine the face with which to display a mark represented by character CHAR."
+  (cond
+   ((member char evil-fringe-mark-special-chars) 'evil-fringe-mark-special-face)
+   ((>= char ?a) 'evil-fringe-mark-local-face)
+   (t 'evil-fringe-mark-file-face)))
+
 (defun evil-fringe-mark-put (char char-list marker)
   "Place an indicator for mark CHAR, of type CHAR-LIST, in the fringe at location
 MARKER."
@@ -111,13 +118,21 @@ MARKER."
         (beginning-of-line)
         (set-marker marker (point))))
     (set char-list (plist-put (symbol-value char-list) char
-                              (fringe-helper-insert
-                               (cdr (assoc char evil-fringe-mark-bitmaps)) marker
-                               evil-fringe-mark-side (cond
-                                                      ((member char evil-fringe-mark-special-chars)
-                                                       'evil-fringe-mark-special-face)
-                                                      ((>= char ?a) 'evil-fringe-mark-local-face)
-                                                      (t 'evil-fringe-mark-file-face)))))))
+                              ; Place indicators in the fringe if running Emacs graphically
+                              (if (display-graphic-p)
+                                  (fringe-helper-insert
+                                   (cdr (assoc char evil-fringe-mark-bitmaps)) marker
+                                   evil-fringe-mark-side
+                                   (evil-fringe-mark-char-face char))
+                                ; Otherwise place indicators in the margin
+                                (let ((margin-ov (make-overlay
+                                                  (marker-position marker)
+                                                  (marker-position marker))))
+                                  (overlay-put margin-ov 'before-string
+                                               (propertize "!" 'display `((margin left-margin)
+                                                                          ,(char-to-string char))
+                                                           'face (evil-fringe-mark-char-face char)))
+                                  margin-ov))))))
 
 (defun evil-fringe-mark-put-special (char marker)
   "Place an indicator for special mark CHAR in the fringe at location MARKER.
