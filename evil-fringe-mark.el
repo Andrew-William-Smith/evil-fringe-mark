@@ -112,6 +112,7 @@ it was placed first."
    (t 'evil-fringe-mark-file-face)))
 
 (defun evil-fringe-mark-on-line (pos)
+  "Determine what fringe indicators are on the line containing position POS."
   (let ((mark-on-line nil))
     ; Check buffer-local marks
     (cl-loop for (char overlay) on evil-fringe-mark-list by 'cddr do
@@ -138,22 +139,39 @@ MARKER."
               (minibufferp))
     (when evil-fringe-mark-always-overwrite
       (let ((old-mark (evil-fringe-mark-on-line (marker-position marker)))
-            (overwritten-char (plist-get evil-fringe-mark-overwritten-list char))
+            (this-stack (car (cl-remove-if-not
+                              (lambda (stack) (member char stack))
+                              evil-fringe-mark-overwritten-list)))
             (overwrite-overlay (plist-get (symbol-value (evil-fringe-mark-char-list char)) char))
-            (overwrite-marker (make-marker)))
+            (overwrite-marker (make-marker))
+            (old-stack nil))
+        (setq old-stack (car (cl-remove-if-not
+                               (lambda (stack) (member (car old-mark) stack))
+                               evil-fringe-mark-overwritten-list)))
+        ; Delete current element from list
+        (cl-delete char (car (member (car (cl-remove-if-not
+                                           (lambda (stack) (member char stack))
+                                           evil-fringe-mark-overwritten-list))
+                                          evil-fringe-mark-overwritten-list)))
+        ; Prepend new mark to line overwrite list
         (when (and old-mark (not no-recurse))
           (evil-fringe-mark-delete (car old-mark))
-          (setq evil-fringe-mark-overwritten-list
-                (plist-put evil-fringe-mark-overwritten-list char (car old-mark))))
-        (when (and overwritten-char overwrite-overlay)
+          (if old-stack
+              (push char (car (member old-stack evil-fringe-mark-overwritten-list)))
+            (push `(,char ,(car old-mark)) evil-fringe-mark-overwritten-list)))
+        ; Draw new head of line overwrite list
+        (when (and this-stack overwrite-overlay)
           (set-marker overwrite-marker (overlay-start overwrite-overlay))
-          (evil-fringe-mark-put overwritten-char
-                                (evil-fringe-mark-char-list overwritten-char)
-                                overwrite-marker t))
-        (cl-loop for (newer overwritten) on evil-fringe-mark-overwritten-list by 'cddr do
-                 (when (eq overwritten char)
-                   (setq evil-fringe-mark-overwritten-list
-                         (evil-plist-delete newer evil-fringe-mark-overwritten-list))))))
+          (pop (car (cl-remove-if-not (lambda (stack) (member char stack))
+                                      evil-fringe-mark-overwritten-list)))
+          (evil-fringe-mark-put (nth 1 this-stack)
+                                (evil-fringe-mark-char-list (nth 1 this-stack))
+                                overwrite-marker t)
+          ; Handle list end
+          (when (eq (length this-stack) 2)
+            (setq evil-fringe-mark-overwritten-list
+                  (cl-remove-if (lambda (stack) (member (nth 1 this-stack) stack))
+                                evil-fringe-mark-overwritten-list))))))
     (let ((old-mark (plist-get (symbol-value char-list) char)))
       (when old-mark (fringe-helper-remove old-mark)))
     (set char-list (plist-put (symbol-value char-list) char
