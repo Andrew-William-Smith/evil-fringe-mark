@@ -131,7 +131,7 @@ it was placed first."
                  (cl-return))))
     mark-on-line))
 
-(defun evil-fringe-mark-put (char char-list marker)
+(defun evil-fringe-mark-put (char char-list marker &optional no-recurse)
   "Place an indicator for mark CHAR, of type CHAR-LIST, in the fringe at location
 MARKER."
   (unless (or (member char evil-fringe-mark-ignore-chars)
@@ -141,7 +141,7 @@ MARKER."
             (overwritten-char (plist-get evil-fringe-mark-overwritten-list char))
             (overwrite-overlay (plist-get (symbol-value (evil-fringe-mark-char-list char)) char))
             (overwrite-marker (make-marker)))
-        (when old-mark
+        (when (and old-mark (not no-recurse))
           (evil-fringe-mark-delete (car old-mark))
           (setq evil-fringe-mark-overwritten-list
                 (plist-put evil-fringe-mark-overwritten-list char (car old-mark))))
@@ -149,7 +149,7 @@ MARKER."
           (set-marker overwrite-marker (overlay-start overwrite-overlay))
           (evil-fringe-mark-put overwritten-char
                                 (evil-fringe-mark-char-list overwritten-char)
-                                overwrite-marker))
+                                overwrite-marker t))
         (cl-loop for (newer overwritten) on evil-fringe-mark-overwritten-list by 'cddr do
                  (when (eq overwritten char)
                    (setq evil-fringe-mark-overwritten-list
