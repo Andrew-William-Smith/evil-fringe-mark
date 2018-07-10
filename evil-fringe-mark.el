@@ -84,6 +84,11 @@ it was placed first."
   :type '(choice (const :tag "Left fringe" left-fringe)
                  (const :tag "Right fringe" right-fringe)))
 
+(defcustom evil-fringe-mark-margin 'left-margin
+  "Fringe in which to place mark overlays."
+  :type '(choice (const :tag "Left margin" left-margin)
+                 (const :tag "Right margin" right-margin)))
+
 (defface evil-fringe-mark-local-face
   '((t (:inherit (font-lock-keyword-face))))
   "Face with which to display buffer-local fringe marks.")
@@ -160,17 +165,18 @@ MARKER."
               (push char (car (member old-stack evil-fringe-mark-overwritten-list)))
             (push `(,char ,(car old-mark)) evil-fringe-mark-overwritten-list)))
         ; Draw new head of line overwrite list
-        (when (and this-stack overwrite-overlay)
-          (set-marker overwrite-marker (overlay-start overwrite-overlay))
-          (pop (car (cl-remove-if-not (lambda (stack) (member char stack))
-                                      evil-fringe-mark-overwritten-list)))
-          (evil-fringe-mark-put (nth 1 this-stack)
-                                (evil-fringe-mark-char-list (nth 1 this-stack))
-                                overwrite-marker t)
-          ; Handle list end
-          (when (eq (length this-stack) 2)
+        (when this-stack
+          (when overwrite-overlay
+            (set-marker overwrite-marker (overlay-start overwrite-overlay))
+            (pop (car (cl-remove-if-not (lambda (stack) (member char stack))
+                                        evil-fringe-mark-overwritten-list)))
+            (evil-fringe-mark-put (nth 1 this-stack)
+                                  (evil-fringe-mark-char-list (nth 1 this-stack))
+                                  overwrite-marker t))
+          ; Handle end of list
+          (when (eq (length this-stack) 1)
             (setq evil-fringe-mark-overwritten-list
-                  (cl-remove-if (lambda (stack) (member (nth 1 this-stack) stack))
+                  (cl-remove-if (lambda (stack) (eq this-stack stack))
                                 evil-fringe-mark-overwritten-list))))))
     (let ((old-mark (plist-get (symbol-value char-list) char)))
       (when old-mark (fringe-helper-remove old-mark)))
@@ -186,7 +192,7 @@ MARKER."
                                                   (marker-position marker)
                                                   (marker-position marker))))
                                   (overlay-put margin-ov 'before-string
-                                               (propertize "!" 'display `((margin left-margin)
+                                               (propertize "!" 'display `((margin ,evil-fringe-mark-margin)
                                                                           ,(char-to-string char))
                                                            'face (evil-fringe-mark-char-face char)))
                                   margin-ov))))))
@@ -342,8 +348,7 @@ and the start and end of the current paragraphs."
 
 (defadvice evil-paste-after (after compile)
   "Advice function for `evil-fringe-mark'."
-  (evil-fringe-mark-refresh-paste)
-  (message "yay"))
+  (evil-fringe-mark-refresh-paste))
 
 ;;;###autoload
 (define-minor-mode evil-fringe-mark-mode
