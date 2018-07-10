@@ -1206,6 +1206,66 @@
   "XXXX...."
   "XXX.....")
 
+(fringe-helper-define 'evil-fringe-mark-symbol-lsquare '(center)
+  "XXXXXXXX"
+  "XXXXXXXX"
+  "XX......"
+  "XX......"
+  "XX......"
+  "XX......"
+  "XX......"
+  "XX......"
+  "XX......"
+  "XX......"
+  "XX......"
+  "XX......"
+  "XX......"
+  "XX......"
+  "XX......"
+  "XX......"
+  "XXXXXXXX"
+  "XXXXXXXX")
+
+(fringe-helper-define 'evil-fringe-mark-symbol-rsquare '(center)
+  "XXXXXXXX"
+  "XXXXXXXX"
+  "......XX"
+  "......XX"
+  "......XX"
+  "......XX"
+  "......XX"
+  "......XX"
+  "......XX"
+  "......XX"
+  "......XX"
+  "......XX"
+  "......XX"
+  "......XX"
+  "......XX"
+  "......XX"
+  "XXXXXXXX"
+  "XXXXXXXX")
+
+(fringe-helper-define 'evil-fringe-mark-symbol-lrsquare '(center)
+  "XXXXXXXX"
+  "XXXXXXXX"
+  "XX......"
+  "XX......"
+  "XX..XXXX"
+  "XX..XXXX"
+  "XX....XX"
+  "XX....XX"
+  "XX....XX"
+  "XX....XX"
+  "XX....XX"
+  "XX....XX"
+  "XXXX..XX"
+  "XXXX..XX"
+  "......XX"
+  "......XX"
+  "XXXXXXXX"
+  "XXXXXXXX")
+
 
 (defvar evil-fringe-mark-bitmaps '(( 46 . evil-fringe-mark-symbol-period)
                                    ( 60 . evil-fringe-mark-symbol-lt)
@@ -1236,6 +1296,8 @@
                                    ( 88 . evil-fringe-mark-upper-x)
                                    ( 89 . evil-fringe-mark-upper-y)
                                    ( 90 . evil-fringe-mark-upper-z)
+                                   ( 91 . evil-fringe-mark-symbol-lsquare)
+                                   ( 93 . evil-fringe-mark-symbol-rsquare)
                                    ( 94 . evil-fringe-mark-symbol-caron)
                                    ( 97 . evil-fringe-mark-lower-a)
                                    ( 98 . evil-fringe-mark-lower-b)
@@ -1265,7 +1327,8 @@
                                    (122 . evil-fringe-mark-lower-z)
                                    (123 . evil-fringe-mark-symbol-lcurly)
                                    (125 . evil-fringe-mark-symbol-rcurly)
-                                   (128 . evil-fringe-mark-symbol-gtlt))
+                                   (128 . evil-fringe-mark-symbol-gtlt)
+                                   (129 . evil-fringe-mark-symbol-lrsquare))
   "Alist of fringe bitmaps to display for characters.")
 
 (provide 'evil-fringe-mark-overlays)

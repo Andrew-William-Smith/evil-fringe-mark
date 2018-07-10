@@ -60,7 +60,7 @@
  (defvar evil-fringe-mark-overwritten-list '()
    "Plist of fringe characters that have been overwritten."))
 
-(defvar evil-fringe-mark-special-chars '(?< ?> 128 ?. ?^ ?{ ?})
+(defvar evil-fringe-mark-special-chars '(?< ?> 128 ?. ?^ ?{ ?} ?\[ ?\] 129)
   "List of characters to consider special marks.")
 
 (defcustom evil-fringe-mark-show-special nil
@@ -227,6 +227,29 @@ Special marks will not override marks placed by the user."
         (evil-fringe-mark-put-special ?< evil-visual-beginning)
         (evil-fringe-mark-put-special ?> visual-end-marker)))))
 
+(defun evil-fringe-mark-refresh-paste ()
+  "Redraw all special paste (yank) mark indicators in the current buffer."
+  (when evil-fringe-mark-show-special
+    (let ((start-marker (make-marker))
+          (end-marker   (make-marker)))
+      ; Delete existing paste special marks
+      (evil-fringe-mark-delete ?\[)
+      (evil-fringe-mark-delete 129)
+      (evil-fringe-mark-delete ?\])
+      ; Get paste start and end, avoiding evil-mode boundary errors
+      (save-excursion
+        (if (ignore-errors (evil-goto-mark ?\[))
+            (set-marker start-marker (point))
+          (set-marker start-marker 1))
+        (if (ignore-errors (evil-goto-mark ?\]))
+            (set-marker end-marker (point))
+          (set-marker end-marker (buffer-size))))
+      (if (eq (line-number-at-pos (marker-position start-marker))
+              (line-number-at-pos (marker-position end-marker)))
+          (evil-fringe-mark-put-special 129 start-marker)    ; Another nonce character
+        (evil-fringe-mark-put-special ?\[ start-marker)
+        (evil-fringe-mark-put-special ?\] end-marker)))))
+
 (defun evil-fringe-mark-refresh-special (&rest args)
   "Redraw the special mark indicators for the last change in the current buffer
 and the start and end of the current paragraphs."
@@ -260,6 +283,7 @@ and the start and end of the current paragraphs."
 
 (defun evil-fringe-mark-refresh-buffer ()
   "Redraw all mark indicators in the current buffer."
+  (setq evil-fringe-mark-overwritten-list nil)
   ; Local marks
   (cl-loop for (char . marker) in evil-markers-alist do
            (when (and (markerp marker)
@@ -267,6 +291,7 @@ and the start and end of the current paragraphs."
              (evil-fringe-mark-put char 'evil-fringe-mark-list marker)))
   ; Special marks
   (evil-fringe-mark-refresh-visual)
+  (evil-fringe-mark-refresh-paste)
   (evil-fringe-mark-refresh-special)
   ; Global marks
   (cl-loop for (char . marker) in (default-value 'evil-markers-alist) do
@@ -277,6 +302,7 @@ and the start and end of the current paragraphs."
 
 (defun evil-fringe-mark-clear-buffer ()
   "Delete all mark indicators from the current buffer."
+  (setq evil-fringe-mark-overwritten-list nil)
   ; Local marks
   (cl-loop for (key _) on evil-fringe-mark-list by 'cddr do
            (evil-fringe-mark-delete key))
@@ -310,6 +336,15 @@ and the start and end of the current paragraphs."
   "Advice function for `evil-fringe-mark'."
   (evil-fringe-mark-refresh-visual))
 
+(defadvice evil-paste-before (after compile)
+  "Advice function for `evil-fringe-mark'."
+  (evil-fringe-mark-refresh-paste))
+
+(defadvice evil-paste-after (after compile)
+  "Advice function for `evil-fringe-mark'."
+  (evil-fringe-mark-refresh-paste)
+  (message "yay"))
+
 ;;;###autoload
 (define-minor-mode evil-fringe-mark-mode
   "Display evil-mode marks in the fringe."
@@ -323,6 +358,10 @@ and the start and end of the current paragraphs."
         (unless (and (member ?< evil-fringe-mark-ignore-chars)
                      (member ?> evil-fringe-mark-ignore-chars))
           (ad-activate 'evil-visual-refresh))
+        (unless (and (member ?\[ evil-fringe-mark-ignore-chars)
+                     (member ?\] evil-fringe-mark-ignore-chars))
+          (ad-activate 'evil-paste-before)
+          (ad-activate 'evil-paste-after))
         (unless (and (member ?. evil-fringe-mark-ignore-chars)
                      (member ?{ evil-fringe-mark-ignore-chars)
                      (member ?} evil-fringe-mark-ignore-chars))
@@ -332,6 +371,8 @@ and the start and end of the current paragraphs."
       (ad-deactivate 'evil-set-marker)
       (ad-deactivate 'evil-delete-marks)
       (ad-deactivate 'evil-visual-refresh)
+      (ad-deactivate 'evil-paste-before)
+      (ad-deactivate 'evil-paste-after)
       (remove-hook 'post-command-hook 'evil-fringe-mark-refresh-special))))
 
 ;;;###autoload
@@ -352,6 +393,10 @@ and the start and end of the current paragraphs."
         (unless (and (member ?< evil-fringe-mark-ignore-chars)
                      (member ?> evil-fringe-mark-ignore-chars))
           (ad-activate 'evil-visual-refresh))
+        (unless (and (member ?\[ evil-fringe-mark-ignore-chars)
+                     (member ?\] evil-fringe-mark-ignore-chars))
+          (ad-activate 'evil-paste-before)
+          (ad-activate 'evil-paste-after))
         (unless (and (member ?. evil-fringe-mark-ignore-chars)
                      (member ?{ evil-fringe-mark-ignore-chars)
                      (member ?} evil-fringe-mark-ignore-chars))
@@ -366,6 +411,8 @@ and the start and end of the current paragraphs."
       (ad-deactivate 'evil-set-marker)
       (ad-deactivate 'evil-delete-marks)
       (ad-deactivate 'evil-visual-refresh)
+      (ad-deactivate 'evil-paste-before)
+      (ad-deactivate 'evil-paste-after)
       (remove-hook 'post-command-hook 'evil-fringe-mark-refresh-special))))
 
 (provide 'evil-fringe-mark)

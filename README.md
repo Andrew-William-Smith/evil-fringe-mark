@@ -66,6 +66,8 @@ The following special marks are supported:
 |------|------------------------------------|
 | `<`  | Beginning of last visual selection |
 | `>`  | End of last visual selection       |
+| `[`  | Beginning of last pasted segment   |
+| `]`  | End of last pasted segment         |
 | `.`  | Last change in current buffer      |
 | `^`  | End of last insertion              |
 | `{`  | Beginning of current paragraph     |
