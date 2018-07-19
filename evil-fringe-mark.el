@@ -58,7 +58,8 @@
 
 (make-variable-buffer-local
  (defvar evil-fringe-mark-overwritten-list '()
-   "Plist of fringe characters that have been overwritten."))
+   "List of lists of fringe characters that have been overwritten.  Each list
+behaves as a linked list, with the most recently-placed mark at the head (car)."))
 
 (defvar evil-fringe-mark-special-chars '(?< ?> 128 ?. ?^ ?{ ?} ?\[ ?\] 129)
   "List of characters to consider special marks.")
@@ -80,12 +81,12 @@ it was placed first."
   :type 'boolean)
 
 (defcustom evil-fringe-mark-side 'left-fringe
-  "Fringe in which to place mark overlays."
+  "Fringe in which to place mark overlays for graphical Emacs sessions."
   :type '(choice (const :tag "Left fringe" left-fringe)
                  (const :tag "Right fringe" right-fringe)))
 
 (defcustom evil-fringe-mark-margin 'left-margin
-  "Fringe in which to place mark overlays."
+  "Margin in which to place mark overlays for non-graphical Emacs sessions."
   :type '(choice (const :tag "Left margin" left-margin)
                  (const :tag "Right margin" right-margin)))
 
@@ -161,9 +162,11 @@ MARKER."
         ; Prepend new mark to line overwrite list
         (when (and old-mark (not no-recurse))
           (evil-fringe-mark-delete (car old-mark))
-          (if old-stack
-              (push char (car (member old-stack evil-fringe-mark-overwritten-list)))
-            (push `(,char ,(car old-mark)) evil-fringe-mark-overwritten-list)))
+          ; Prevent overwriting same character
+          (unless (eq (car old-mark) char)
+            (if old-stack
+                (push char (car (member old-stack evil-fringe-mark-overwritten-list)))
+              (push `(,char ,(car old-mark)) evil-fringe-mark-overwritten-list))))
         ; Draw new head of line overwrite list
         (when this-stack
           (when overwrite-overlay
