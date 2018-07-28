@@ -48,6 +48,26 @@ To switch the fringe in which mark overlays are displayed (`left-fringe` by defa
 
 Regardless of in which fringe you choose to display marks, it is recommended that you increase the width of that fringe to fully display wide characters.
 
+### Switch display margin
+
+As non-graphical Emacs sessions do not support fringe display, `evil-fringe-mark` displays marks in the margin instead in such environments.  To switch the margin in which marks are displayed (`left-margin` by default), include a variation of the following in your Emacs configuration:
+
+```
+;; Use left margin
+(setq-default left-margin-width 2)
+(setq-default evil-fringe-mark-margin 'left-margin)
+
+;; Use right margin
+(setq-default right-margin-width 2)
+(setq-default evil-fringe-mark-margin 'right-margin)
+```
+
+Regardless of in which margin you choose to display marks, you must set a `*-margin-width` variable to a value greater than `0` for marks to appear.  Furthermore, setting one of these variables to a value greater than `1` will allow for multiple marks to be displayed per line if `evil-fringe-mark-always-overwrite` is set to `nil`.
+
+### Display only the most recently-placed mark on each line
+
+To display only the most recently-placed mark on each line, set `evil-fringe-mark-always-overwrite` to a non-`nil` value (`t` by default).  It is recommended that this variable not be set to `nil` in graphical Emacs sessions, as doing so could result in unintuitive behaviour.  In non-graphical sessions, setting it to `nil` will allow multiple marks to be displayed in the margin for each line, provided that a `*-margin-width` variable is set to a value greater than `1`; multiple mark display is not supported in the graphical fringe.
+
 ### Display special marks
 
 By default, `evil-fringe-mark` does not display automatically-placed special marks in the fringe.  To display these marks, set `evil-fringe-mark-show-special` to a non-`nil` value in your Emacs configuration:
@@ -66,6 +86,8 @@ The following special marks are supported:
 |------|------------------------------------|
 | `<`  | Beginning of last visual selection |
 | `>`  | End of last visual selection       |
+| `[`  | Beginning of last pasted segment   |
+| `]`  | End of last pasted segment         |
 | `.`  | Last change in current buffer      |
 | `^`  | End of last insertion              |
 | `{`  | Beginning of current paragraph     |

@@ -5,7 +5,7 @@
 
 ;; Author: Andrew Smith <andy.bill.smith@gmail.com>
 ;; URL: https://github.com/Andrew-William-Smith/evil-fringe-mark
-;; Version: 1.1.1
+;; Version: 1.2.0
 ;; Package-Requires: ((emacs "24.3") (evil "1.0.0") (fringe-helper "0.1.1") (goto-chg "1.6"))
 
 ;; This file is part of evil-fringe-mark.
@@ -56,7 +56,12 @@
 (defvar evil-fringe-mark-file-list '()
   "Plist of fringe overlays for file marks.")
 
-(defvar evil-fringe-mark-special-chars '(?< ?> 128 ?. ?^ ?{ ?})
+(make-variable-buffer-local
+ (defvar evil-fringe-mark-overwritten-list '()
+   "List of lists of fringe characters that have been overwritten.  Each list
+behaves as a linked list, with the most recently-placed mark at the head (car)."))
+
+(defvar evil-fringe-mark-special-chars '(?< ?> 128 ?. ?^ ?{ ?} ?\[ ?\] 129)
   "List of characters to consider special marks.")
 
 (defcustom evil-fringe-mark-show-special nil
@@ -76,9 +81,14 @@ it was placed first."
   :type 'boolean)
 
 (defcustom evil-fringe-mark-side 'left-fringe
-  "Fringe in which to place mark overlays."
+  "Fringe in which to place mark overlays for graphical Emacs sessions."
   :type '(choice (const :tag "Left fringe" left-fringe)
                  (const :tag "Right fringe" right-fringe)))
+
+(defcustom evil-fringe-mark-margin 'left-margin
+  "Margin in which to place mark overlays for non-graphical Emacs sessions."
+  :type '(choice (const :tag "Left margin" left-margin)
+                 (const :tag "Right margin" right-margin)))
 
 (defface evil-fringe-mark-local-face
   '((t (:inherit (font-lock-keyword-face))))
@@ -100,46 +110,101 @@ it was placed first."
    ((>= char ?a) 'evil-fringe-mark-list)    ; Buffer-local mark
    (t 'evil-fringe-mark-file-list)))        ; File mark
 
-(defun evil-fringe-mark-put (char char-list marker)
+(defun evil-fringe-mark-char-face (char)
+  "Determine the face with which to display a mark represented by character CHAR."
+  (cond
+   ((member char evil-fringe-mark-special-chars) 'evil-fringe-mark-special-face)
+   ((>= char ?a) 'evil-fringe-mark-local-face)
+   (t 'evil-fringe-mark-file-face)))
+
+(defun evil-fringe-mark-on-line (pos)
+  "Determine what fringe indicators are on the line containing position POS."
+  (let ((mark-on-line nil))
+    ; Check buffer-local marks
+    (cl-loop for (char overlay) on evil-fringe-mark-list by 'cddr do
+             (when (and (overlay-start overlay)
+                        (eq (line-number-at-pos (overlay-start overlay))
+                        (line-number-at-pos pos)))
+               (setq mark-on-line `(,char ,overlay))
+               (cl-return)))
+    ; Check file marks: Emacs has no way to combine plists
+    (unless mark-on-line
+      (cl-loop for (char overlay) on evil-fringe-mark-file-list by 'cddr do
+               (when (and (overlay-start overlay)
+                          (eq (current-buffer) (overlay-buffer overlay))
+                          (eq (line-number-at-pos (overlay-start overlay))
+                              (line-number-at-pos pos)))
+                 (setq mark-on-line `(,char ,overlay))
+                 (cl-return))))
+    mark-on-line))
+
+(defun evil-fringe-mark-put (char char-list marker &optional no-recurse)
   "Place an indicator for mark CHAR, of type CHAR-LIST, in the fringe at location
 MARKER."
   (unless (or (member char evil-fringe-mark-ignore-chars)
               (minibufferp))
     (when evil-fringe-mark-always-overwrite
-      (save-excursion
-        (goto-char (marker-position marker))
-        (beginning-of-line)
-        (set-marker marker (point))))
+      (let ((old-mark (evil-fringe-mark-on-line (marker-position marker)))
+            (this-stack (car (cl-remove-if-not
+                              (lambda (stack) (member char stack))
+                              evil-fringe-mark-overwritten-list)))
+            (overwrite-overlay (plist-get (symbol-value (evil-fringe-mark-char-list char)) char))
+            (overwrite-marker (make-marker))
+            (old-stack nil))
+        (setq old-stack (car (cl-remove-if-not
+                               (lambda (stack) (member (car old-mark) stack))
+                               evil-fringe-mark-overwritten-list)))
+        ; Delete current element from list
+        (cl-delete char (car (member (car (cl-remove-if-not
+                                           (lambda (stack) (member char stack))
+                                           evil-fringe-mark-overwritten-list))
+                                          evil-fringe-mark-overwritten-list)))
+        ; Prepend new mark to line overwrite list
+        (when (and old-mark (not no-recurse))
+          (evil-fringe-mark-delete (car old-mark))
+          ; Prevent overwriting same character
+          (unless (eq (car old-mark) char)
+            (if old-stack
+                (push char (car (member old-stack evil-fringe-mark-overwritten-list)))
+              (push `(,char ,(car old-mark)) evil-fringe-mark-overwritten-list))))
+        ; Draw new head of line overwrite list
+        (when this-stack
+          (when overwrite-overlay
+            (set-marker overwrite-marker (overlay-start overwrite-overlay))
+            (pop (car (cl-remove-if-not (lambda (stack) (member char stack))
+                                        evil-fringe-mark-overwritten-list)))
+            (evil-fringe-mark-put (nth 1 this-stack)
+                                  (evil-fringe-mark-char-list (nth 1 this-stack))
+                                  overwrite-marker t))
+          ; Handle end of list
+          (when (eq (length this-stack) 1)
+            (setq evil-fringe-mark-overwritten-list
+                  (cl-remove-if (lambda (stack) (eq this-stack stack))
+                                evil-fringe-mark-overwritten-list))))))
+    (let ((old-mark (plist-get (symbol-value char-list) char)))
+      (when old-mark (fringe-helper-remove old-mark)))
     (set char-list (plist-put (symbol-value char-list) char
-                              (fringe-helper-insert
-                               (cdr (assoc char evil-fringe-mark-bitmaps)) marker
-                               evil-fringe-mark-side (cond
-                                                      ((member char evil-fringe-mark-special-chars)
-                                                       'evil-fringe-mark-special-face)
-                                                      ((>= char ?a) 'evil-fringe-mark-local-face)
-                                                      (t 'evil-fringe-mark-file-face)))))))
+                              ; Place indicators in the fringe if running Emacs graphically
+                              (if (display-graphic-p)
+                                  (fringe-helper-insert
+                                   (cdr (assoc char evil-fringe-mark-bitmaps)) marker
+                                   evil-fringe-mark-side
+                                   (evil-fringe-mark-char-face char))
+                                ; Otherwise place indicators in the margin
+                                (let ((margin-ov (make-overlay
+                                                  (marker-position marker)
+                                                  (marker-position marker))))
+                                  (overlay-put margin-ov 'before-string
+                                               (propertize "!" 'display `((margin ,evil-fringe-mark-margin)
+                                                                          ,(char-to-string char))
+                                                           'face (evil-fringe-mark-char-face char)))
+                                  margin-ov))))))
 
 (defun evil-fringe-mark-put-special (char marker)
   "Place an indicator for special mark CHAR in the fringe at location MARKER.
 Special marks will not override marks placed by the user."
-  (let ((mark-on-line nil)
-        (mpos (marker-position marker)))
-    ; Check buffer-local marks
-    (cl-loop for (_ overlay) on evil-fringe-mark-list by 'cddr do
-             (when (eq (line-number-at-pos (overlay-start overlay))
-                       (line-number-at-pos mpos))
-               (setq mark-on-line t)
-               (cl-return)))
-    ; Check file marks: Emacs has no way to combine plists
-    (unless mark-on-line
-      (cl-loop for (_ overlay) on evil-fringe-mark-file-list by 'cddr do
-               (when (and (eq (current-buffer) (overlay-buffer overlay))
-                          (eq (line-number-at-pos (overlay-start overlay))
-                              (line-number-at-pos mpos)))
-                 (setq mark-on-line t)
-                 (cl-return))))
-    (unless mark-on-line
-      (evil-fringe-mark-put char 'evil-fringe-mark-special-list marker))))
+  (unless (evil-fringe-mark-on-line (marker-position marker))
+    (evil-fringe-mark-put char 'evil-fringe-mark-special-list marker)))
 
 (defun evil-fringe-mark-delete (char)
   "Delete the indicator for mark CHAR from the fringe."
@@ -170,6 +235,29 @@ Special marks will not override marks placed by the user."
           (evil-fringe-mark-put-special 128 evil-visual-beginning)    ; Use a nonce ASCII character
         (evil-fringe-mark-put-special ?< evil-visual-beginning)
         (evil-fringe-mark-put-special ?> visual-end-marker)))))
+
+(defun evil-fringe-mark-refresh-paste ()
+  "Redraw all special paste (yank) mark indicators in the current buffer."
+  (when evil-fringe-mark-show-special
+    (let ((start-marker (make-marker))
+          (end-marker   (make-marker)))
+      ; Delete existing paste special marks
+      (evil-fringe-mark-delete ?\[)
+      (evil-fringe-mark-delete 129)
+      (evil-fringe-mark-delete ?\])
+      ; Get paste start and end, avoiding evil-mode boundary errors
+      (save-excursion
+        (if (ignore-errors (evil-goto-mark ?\[))
+            (set-marker start-marker (point))
+          (set-marker start-marker 1))
+        (if (ignore-errors (evil-goto-mark ?\]))
+            (set-marker end-marker (point))
+          (set-marker end-marker (buffer-size))))
+      (if (eq (line-number-at-pos (marker-position start-marker))
+              (line-number-at-pos (marker-position end-marker)))
+          (evil-fringe-mark-put-special 129 start-marker)    ; Another nonce character
+        (evil-fringe-mark-put-special ?\[ start-marker)
+        (evil-fringe-mark-put-special ?\] end-marker)))))
 
 (defun evil-fringe-mark-refresh-special (&rest args)
   "Redraw the special mark indicators for the last change in the current buffer
@@ -204,6 +292,7 @@ and the start and end of the current paragraphs."
 
 (defun evil-fringe-mark-refresh-buffer ()
   "Redraw all mark indicators in the current buffer."
+  (setq evil-fringe-mark-overwritten-list nil)
   ; Local marks
   (cl-loop for (char . marker) in evil-markers-alist do
            (when (and (markerp marker)
@@ -211,6 +300,7 @@ and the start and end of the current paragraphs."
              (evil-fringe-mark-put char 'evil-fringe-mark-list marker)))
   ; Special marks
   (evil-fringe-mark-refresh-visual)
+  (evil-fringe-mark-refresh-paste)
   (evil-fringe-mark-refresh-special)
   ; Global marks
   (cl-loop for (char . marker) in (default-value 'evil-markers-alist) do
@@ -221,6 +311,7 @@ and the start and end of the current paragraphs."
 
 (defun evil-fringe-mark-clear-buffer ()
   "Delete all mark indicators from the current buffer."
+  (setq evil-fringe-mark-overwritten-list nil)
   ; Local marks
   (cl-loop for (key _) on evil-fringe-mark-list by 'cddr do
            (evil-fringe-mark-delete key))
@@ -238,9 +329,6 @@ and the start and end of the current paragraphs."
         (marker    ad-do-it)
         (char-list (evil-fringe-mark-char-list char))
         (old-mark  nil))
-    (setq old-mark (plist-get (symbol-value char-list) char))
-    (when old-mark
-      (fringe-helper-remove old-mark))
     (when (or evil-fringe-mark-mode global-evil-fringe-mark-mode)
       ; Handle special markers set with `evil-set-marker'
       (if (eq char-list 'evil-fringe-mark-special-list)
@@ -257,6 +345,14 @@ and the start and end of the current paragraphs."
   "Advice function for `evil-fringe-mark'."
   (evil-fringe-mark-refresh-visual))
 
+(defadvice evil-paste-before (after compile)
+  "Advice function for `evil-fringe-mark'."
+  (evil-fringe-mark-refresh-paste))
+
+(defadvice evil-paste-after (after compile)
+  "Advice function for `evil-fringe-mark'."
+  (evil-fringe-mark-refresh-paste))
+
 ;;;###autoload
 (define-minor-mode evil-fringe-mark-mode
   "Display evil-mode marks in the fringe."
@@ -270,6 +366,10 @@ and the start and end of the current paragraphs."
         (unless (and (member ?< evil-fringe-mark-ignore-chars)
                      (member ?> evil-fringe-mark-ignore-chars))
           (ad-activate 'evil-visual-refresh))
+        (unless (and (member ?\[ evil-fringe-mark-ignore-chars)
+                     (member ?\] evil-fringe-mark-ignore-chars))
+          (ad-activate 'evil-paste-before)
+          (ad-activate 'evil-paste-after))
         (unless (and (member ?. evil-fringe-mark-ignore-chars)
                      (member ?{ evil-fringe-mark-ignore-chars)
                      (member ?} evil-fringe-mark-ignore-chars))
@@ -279,6 +379,8 @@ and the start and end of the current paragraphs."
       (ad-deactivate 'evil-set-marker)
       (ad-deactivate 'evil-delete-marks)
       (ad-deactivate 'evil-visual-refresh)
+      (ad-deactivate 'evil-paste-before)
+      (ad-deactivate 'evil-paste-after)
       (remove-hook 'post-command-hook 'evil-fringe-mark-refresh-special))))
 
 ;;;###autoload
@@ -299,6 +401,10 @@ and the start and end of the current paragraphs."
         (unless (and (member ?< evil-fringe-mark-ignore-chars)
                      (member ?> evil-fringe-mark-ignore-chars))
           (ad-activate 'evil-visual-refresh))
+        (unless (and (member ?\[ evil-fringe-mark-ignore-chars)
+                     (member ?\] evil-fringe-mark-ignore-chars))
+          (ad-activate 'evil-paste-before)
+          (ad-activate 'evil-paste-after))
         (unless (and (member ?. evil-fringe-mark-ignore-chars)
                      (member ?{ evil-fringe-mark-ignore-chars)
                      (member ?} evil-fringe-mark-ignore-chars))
@@ -313,6 +419,8 @@ and the start and end of the current paragraphs."
       (ad-deactivate 'evil-set-marker)
       (ad-deactivate 'evil-delete-marks)
       (ad-deactivate 'evil-visual-refresh)
+      (ad-deactivate 'evil-paste-before)
+      (ad-deactivate 'evil-paste-after)
       (remove-hook 'post-command-hook 'evil-fringe-mark-refresh-special))))
 
 (provide 'evil-fringe-mark)
