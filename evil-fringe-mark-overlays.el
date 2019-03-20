@@ -1,11 +1,11 @@
 ;;; evil-fringe-mark-overlays.el --- Character overlays for evil-fringe-mark
 ;; This file is not part of GNU Emacs.
 
-;; Copyright (C) 2018 Andrew Smith
+;; Copyright (C) 2019 Andrew Smith
 
 ;; Author: Andrew Smith <andy.bill.smith@gmail.com>
 ;; URL: https://github.com/Andrew-William-Smith/evil-fringe-mark
-;; Version: 1.2.0
+;; Version: 1.2.1
 ;; Package-Requires: ((emacs "24.3") (evil "1.0.0") (fringe-helper "0.1.1") (goto-chg "1.6"))
 
 ;; This file is part of evil-fringe-mark.

@@ -1,11 +1,11 @@
 ;;; evil-fringe-mark.el --- Display evil-mode marks in the fringe
 ;; This file is not part of GNU Emacs.
 
-;; Copyright (C) 2018 Andrew Smith
+;; Copyright (C) 2019 Andrew Smith
 
 ;; Author: Andrew Smith <andy.bill.smith@gmail.com>
 ;; URL: https://github.com/Andrew-William-Smith/evil-fringe-mark
-;; Version: 1.2.0
+;; Version: 1.2.1
 ;; Package-Requires: ((emacs "24.3") (evil "1.0.0") (fringe-helper "0.1.1") (goto-chg "1.6"))
 
 ;; This file is part of evil-fringe-mark.
@@ -218,7 +218,8 @@ Special marks will not override marks placed by the user."
 
 (defun evil-fringe-mark-refresh-visual ()
   "Redraw all special visual mark indicators in the current buffer."
-  (when evil-fringe-mark-show-special
+  ; Only attempt to create marker if evil-visual-end is defined
+  (when (and evil-fringe-mark-show-special evil-visual-end)
     (let ((visual-end-pos    (marker-position evil-visual-end))
           (visual-end-marker (make-marker)))
       ; Delete all visual special marks
@@ -280,15 +281,20 @@ and the start and end of the current paragraphs."
       (evil-fringe-mark-put-special ?{ start-marker)
       (evil-fringe-mark-put-special ?} end-marker))
     ; Last change
-    (when (and (not (eq this-command last-command))
-               buffer-undo-list
-               (not (eq buffer-undo-list t)))
-      (let ((change-marker (make-marker)))
-        (evil-fringe-mark-delete ?.)
-        (save-excursion
-          (ignore-errors (evil-goto-mark ?.))
-          (set-marker change-marker (point)))
-        (evil-fringe-mark-put-special ?. change-marker)))))
+    ; NOTE: Disabled due to an incompatibility between Emacs 26.1 and
+    ; undo-tree that results in the excessive proliferation of canaries
+    ; when trying to get evil-mode mark ?.
+    ;
+    ; (when (and (not (eq this-command last-command))
+    ;            buffer-undo-list
+    ;            (not (eq buffer-undo-list t)))
+    ;   (let ((change-marker (make-marker)))
+    ;     (evil-fringe-mark-delete ?.)
+    ;     (save-excursion
+    ;       (ignore-errors (evil-goto-mark ?.))
+    ;       (set-marker change-marker (point)))
+    ;     (evil-fringe-mark-put-special ?. change-marker)))))
+    ))
 
 (defun evil-fringe-mark-refresh-buffer ()
   "Redraw all mark indicators in the current buffer."
